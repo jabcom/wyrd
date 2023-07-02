@@ -1,0 +1,22 @@
+User opens the site, they are presented with an option to START a game or JOIN a game. If they entered with a URL containing a peer ID they will automaticly attempt to join.
+
+    If they START a game, the peerJS is initalised and the peerID, along with a URL and QR code is presented. Links to share the URL are also presented. The page will remain until another player joins, then it will enter the lobby
+
+    If they selected JOIN a game they will be presented with a box to enter the peerID, and a button to open the camera to scan the QR code. Once a code is entered PeerJS will attempt to join.
+        
+        If that peer can't be connected show an error
+        If the peer is connected show a loading screen - have a timeout till an error if no message is recieved from the peer
+        If the peer responds with game state, but game is not in stage 0 show connected info, but a message about waiting till the stage is over - player is in spectator mode
+        If peer is connected, and game stage is 0 go to the lobby
+    
+    The Lobby - Show a list of player, each with a diffrent color, and info about how to add other players. Button to "Ready" and "Unready". Show the status of other players as well. Players go from state 0 (idle) to 3 (ready for next round)
+
+    Once all players are ready they will go to a screen to enter thier word. At the top of the screen there is a status page of the other players - thinking (3), writing (1), ready (2). The text area to enter the word has a timer (the first round has double time). If a player does not make it before the timer #TODO - what is the penalty
+
+    Once all players are ready (2) the words are revieled. There is a few seconds of the words displayed. The words shown in player color, and the users words in bold. A timebar is shown on the bottom of the page waiting for the next round.
+
+    Once the next round starts, it is the same as the first, except the origional words are now shown at the top. If two words were the same #TODO what happens?. Also if a word is entered that has previousley been seen before, disalow it.
+
+    At the end of the second round, i.e. when there are words from the previous round
+
+

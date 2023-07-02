@@ -1,21 +1,20 @@
 
 import './App.css';
 import { useEffect, useState } from 'react';
-import MainGame from './MainGame';
+import '@fontsource/roboto/400.css';
+import { Container } from '@mui/material';
 import NotInGame from './NotInGame';
+import Lobby from './Lobby';
 import PeerJS from "peerjs";
+import ErrorBox from './ErrorBox';
 
 function App() {
 
-  const [gameState, setGameState] = useState(0)
-  /*
-    0 lobby/revealed
-    1 writing
-  */
-  const [oldWordList, setOldWordList] = useState({})
+  const [gameStage, setGameStage] = useState(0)
+  const [runningWordList, setRunningWordList] = useState({})
   const [currentWordList, setCurrentWordList] = useState({})
   const [username, setusername] = useState("")
-  const [peerJS, setPeerJS] = useState(new PeerJS())
+  const [peerJS, setPeerJS] = useState()
   const [peers, setPeers] = useState({})
   const [players, setPlayers] = useState({})
   const [inGame, setInGame] = useState(false)
@@ -31,6 +30,7 @@ function App() {
   */
   const [word, setWord] = useState(null)
   const [gameWon, setGameWon] = useState(false)
+  const [errorList, setErrorList] = useState([])
 
   //Checks if user is in game based of player count
   useEffect(() => {
@@ -41,9 +41,25 @@ function App() {
     }
   }, [players])
 
+  //Show error
+  function showError(msg) {
+    setErrorList(currentErrors => {
+      let newList = [...currentErrors, msg]
+      return newList
+    })
+    setTimeout(() => {
+      setErrorList(currentErrors => {
+        //remove first element
+        let newList = [...currentErrors]
+        newList.shift()
+        return newList
+      })
+    }, 3000)
+  }
+
   //peer functions
 
-  const connectToPeer = (id) => {
+  function connectToPeer(id) {
     //need to check for errors
     const peerConnection = peerJS.connect(id)
     setPeers(currnetPeers => {
@@ -127,12 +143,14 @@ function App() {
       switch(playerState) {
         case 0:
           // idle
+          setGameStage(0)
           break
         case 1:
-          //writing
+          //writing - no need to take action
            break
         case 2:
           //ready to reveal
+          setGameStage(2)
           break
         case 3:
           //ready for next round
@@ -146,33 +164,27 @@ function App() {
 
 
 function restartGame() {
-  setOldWordList(currentWordList)
+  setRunningWordList(currentWordList)
   setCurrentWordList({})
-  setPlayerState({})
   setPlayerState(0)
-  setGameState(0)
+  setGameStage(0)
   sendAllState()
 }
 
-//check if user is in game
-
   return (
-    <>
+    <Container maxWidth="sm">
+    <ErrorBox errorList={errorList}>
+    </ErrorBox>
+ 
     {inGame === false && 
     <NotInGame
       username={username}
       setusername={setusername}
+      peerJS={peerJS}
+      setPeerJS={setPeerJS}
     ></NotInGame>
     }
-    {inGame === true && 
-    <MainGame
-      username={username}
-      gameState={gameState}
-      oldWordList={oldWordList}
-      currentWordList={currentWordList}
-      players={players}
-    ></MainGame>}
-    </>
+    </Container>
   );
 }
 
