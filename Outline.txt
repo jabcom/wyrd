@@ -1,3 +1,5 @@
+Name - wyrd | 
+
 User opens the site, they are presented with an option to START a game or JOIN a game. If they entered with a URL containing a peer ID they will automaticly attempt to join.
 
     If they START a game, the peerJS is initalised and the peerID, along with a URL and QR code is presented. Links to share the URL are also presented. The page will remain until another player joins, then it will enter the lobby

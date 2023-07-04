@@ -1,25 +1,73 @@
-import React from 'react'
+import React, { useState } from 'react'
 import Grid from '@mui/material/Unstable_Grid2/Grid2'
-import { Typography, Button } from '@mui/material'
+import { Typography, Button, TextField, Stack, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material'
 
-function NotInGame() {
+function NotInGame({setInitialPeer, setUsername, setupPeerJS, showError}) {
+
+    const [showJoinBox, setShowJoinBox] = useState(false)
+    const [showNewGameBox, setShowNewGameBox] = useState(false)
+    const [localUsername, setLocalUsername] = useState("")
+
+    function startNewGame() {
+        if (localUsername === undefined || localUsername === "") {
+            //username invalid
+            showError("Username Invalid")
+            return
+        }
+        setUsername(localUsername)
+        setupPeerJS()
+        setShowNewGameBox(false)
+    }
+
+    function joinGame() {
+        if (localUsername === undefined || localUsername === "") {
+            //username invalid
+            return
+        }
+        setInitialPeer("get the peer id from scan")
+    }
+
   return (
     <>
         <Grid container spacing={2}>
         <Grid item xs={12}>
-            <Typography variant="h1" align="center">wyrd</Typography>
+            Wyrd Description and rules
         </Grid>
         <Grid item xs={6}>
             <Typography align='center'>
-                <Button variant="contained">Create New Game</Button>
+                <Button onClick={() => setShowNewGameBox(true)} variant="contained">Create New Game</Button>
             </Typography>
         </Grid>
         <Grid item xs={6}>
             <Typography align='center'>
-                <Button variant="contained">Join Existing Game</Button>
+                <Button onClick={() => setShowJoinBox(true)}  variant="contained">Join Existing Game</Button>
             </Typography>
         </Grid>
     </Grid>
+
+    <Dialog open={showNewGameBox} onClose={() => setShowNewGameBox(false)}>
+        <DialogTitle>
+            New Game
+        </DialogTitle>
+        <DialogContent>
+            <DialogContentText>
+                Enter your username
+            </DialogContentText>
+            <TextField
+                autoFocus
+                id="username"
+                label="Username"
+                variant="outlined"
+                value={localUsername}
+                onChange={(e) => setLocalUsername(e.target.value.replace(/[^a-z0-9]/gi, ''))}
+            />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowNewGameBox(false)}>Cancel</Button>
+          <Button 
+           onClick={startNewGame}>Start Game</Button>
+        </DialogActions>
+    </Dialog>
     </>
   )
 }
