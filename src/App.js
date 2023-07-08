@@ -2,12 +2,13 @@
 import './App.css';
 import { useEffect, useState } from 'react';
 import '@fontsource/roboto/400.css';
-import { Container} from '@mui/material';
+import { Container, TextField, Dialog, DialogActions, Button, DialogTitle, DialogContent, DialogContentText} from '@mui/material';
 import NotInGame from './NotInGame';
 import Lobby from './Lobby';
 import PeerJS from "peerjs";
 import ErrorBox from './ErrorBox';
 import TopBar from './TopBar';
+import Game from './Game';
 
 function App() {
 
@@ -18,38 +19,103 @@ function App() {
   const [gloablPeerJS, setGlobalPeerJS] = useState(null)
   const [peers, setPeers] = useState({})
   const [players, setPlayers] = useState({}) //id: {username, state}
-  const [inGame, setInGame] = useState(false)
   const [playerState, setPlayerState] = useState(0) // 0:idle, 1:writing, 2:ready to reveal, 3: ready for next round
   const [word, setWord] = useState(null)
   const [gameWon, setGameWon] = useState(false)
   const [errorList, setErrorList] = useState([])
   const [initialPeer, setInitialPeer] = useState(null)
   const [myPeerID, setMyPeerID] = useState("")
+  const [showJoinPopup, setShowJoinPopup] = useState(false)
+  const [tmpUsername, setTmpUsername] = useState("")
+  const [showSharePopup, setShowSharePopup] = useState(false)
 
-  //Checks if user is in game based of player count
+  //check if user is joining a game
   useEffect(() => {
-    if (Object.keys(players).length === 0) {
-      setInGame(false)
-    } else {
-      setInGame(true)
+    const searchParams = new URLSearchParams(document.location.search)
+    let peerFromURL = searchParams.get('peer')
+    if (peerFromURL !== "" && peerFromURL !== undefined && peerFromURL !== null && gloablPeerJS === null) {
+      console.log("peerID found in URL", peerFromURL)
+      setInitialPeer(peerFromURL)
+      setShowJoinPopup(true)
     }
-  }, [players])
+  },[])
+
+  //connect once username is set
+  useEffect(() => {
+    if (gloablPeerJS === null && username !== "") {
+      setupPeerJS()
+    }
+  },[username])
+
+  useEffect(() => {
+    console.log("Updating peer callback functions")
+    Object.keys(peers).forEach(peerID => {
+      peers[peerID].on('error', (error) => {
+        showError(error)
+      })
+      peers[peerID].on('data', (data) => {
+        console.log("Got data", peerID, JSON.stringify(data))
+        handleRecievedData(data, peerID)
+      })
+      peers[peerID].on('open', () => {
+        console.log("Connection opened with", peerID)
+        peers[peerID].send({request: "requestState"})
+      })
+      peers[peerID].on('close', () => {
+        console.log("connection lost to", peerID)
+        handlePeerDisconnect(peerID)
+      })
+    })
+  },[peers])
+
+  //Check if initial peer and username is set, and if so try to start peerJS and connect
+  /*
+  useEffect(() => {
+    if (initialPeer !== null && initialPeer !== "" && initialPeer !== undefined) {
+      if (username !== "") {
+        //init peerJS
+        if (gloablPeerJS === null) {
+          setupPeerJS()
+        } else {
+          connectToPeer(initialPeer)
+        }
+      }
+    }
+  }, [initialPeer, username])
+  */
+
+function joinGame() {
+  setShowJoinPopup(false)
+  setUsername(tmpUsername)
+  //setupPeerJS()
+}
 
 function setupPeerJS() {
   console.log("Running peer init")
+  //check if username is set
+  if (username === "") {
+    showError("Username not set")
+    return
+  }
     if (gloablPeerJS === null || gloablPeerJS === undefined) {
       const peerJS = new PeerJS()
       //peerJS connected to server
       peerJS.on('open', peerID => {
         setMyPeerID(peerID)
+        //set local user to players list
+        let playersObj = {}
+        playersObj[peerID] = {
+          state: 0,
+          username: username,
+          word: null,
+          peers: []
+        }
+        setPlayers(playersObj)
         console.log("Started PeerJS with ID:", peerID)
-        //if peer supplied by URL try to connect
-        const searchParams = new URLSearchParams(document.location.search)
-        let initialPeerID = searchParams.get('peer')
-        if (initialPeerID !== "" && initialPeerID !== undefined && initialPeerID !== null) {
+        if (initialPeer !== "" && initialPeer !== undefined && initialPeer !== null) {
           //try to connect to peer, and send result to peer handleer
-          console.log("Trying to connect to peer from URL", initialPeerID)
-          handlePeerConnection(peerJS.connect(initialPeerID))
+          console.log("Trying to connect to peer from URL", initialPeer)
+          handlePeerConnection(peerJS.connect(initialPeer))
         }
       })
       //new data connection - i.e. connection from other peer
@@ -65,44 +131,7 @@ function setupPeerJS() {
     }
 }
 
-/*
-  //run on startup to init PeerJS
-  useEffect(() => {
-    console.log("Running peer init")
-    if (gloablPeerJS === null || gloablPeerJS === undefined) {
-      const peerJS = new PeerJS()
-      //peerJS connected to server
-      peerJS.on('open', peerID => {
-        setMyPeerID(peerID)
-        console.log("Started PeerJS with ID:", peerID)
-        //if peer supplied by URL try to connect
-        const searchParams = new URLSearchParams(document.location.search)
-        let initialPeerID = searchParams.get('peer')
-        if (initialPeerID !== "" && initialPeerID !== undefined && initialPeerID !== null) {
-          //try to connect to peer, and send result to peer handleer
-          console.log("Trying to connect to peer from URL", initialPeerID)
-          handlePeerConnection(peerJS.connect(initialPeerID))
-        }
-      })
-      //new data connection - i.e. connection from other peer
-      peerJS.on('connection', (dataConnection => handlePeerConnection(dataConnection)))
-      //handle error connecting to server
-      peerJS.on('error', error => showError(error))
 
-      peerJS.on('close', () => showError("Peer instance closed"))
-      //save peer instance to state
-      setGlobalPeerJS(peerJS)
-    } else {
-      showError("PeerJS tried to start when already started")
-    }
-    return ((peerJS) => {
-      try {setGlobalPeerJS.destroy()} catch (e) {
-        showError("Failed to destroy old peerJS instance ")
-        console.error(e)
-      }
-    })
-  }, [])
-*/
   //Show error
   function showError(msg) {
     console.error(msg)
@@ -123,14 +152,7 @@ function setupPeerJS() {
   //connected to peer
   function handlePeerConnection(peerConnection) {
     let peerID = peerConnection.peer
-    if (!(peerConnection.reliable)) {
-      showError("Peer connected, but with an unreliable connection", peerID)
-    }
-    peerConnection.on('error', error => showError(error))
-    peerConnection.on('data', data => handleRecievedData(data, peerID))
-    peerConnection.on('open', () => peerConnection.send({request: "requestState"}))
-    peerConnection.on('close', () => handlePeerDisconnect(peerID))
-    //update object of peer connections 
+    console.log("connected to peer", peerID)
     setPeers(currentPeers => {
       let peerList = {...currentPeers}
       peerList[peerID] = peerConnection
@@ -144,22 +166,25 @@ function setupPeerJS() {
   }
   //disconnected
   function handlePeerDisconnect(peerID) {
-    showError("Peer disconnected", peerID)
+    showError("Peer disconnected")
     setPeers(currentPeers => {
-      let newPeers = currentPeers.filter(p => p.id !== peerID)
+      let newPeers = {...currentPeers}
+      delete newPeers[peerID]
       return newPeers
     })
     setPlayers(currentPlayers => {
-      let newPlayers = currentPlayers.filter(p => p.id !== peerID)
+      let newPlayers = {...currentPlayers}
+      delete newPlayers[peerID]
       return newPlayers
     })
   }
 
   //got data from peer
   function handleRecievedData(data, peerID) {
-    console.log("Received data from + " + peerID + "\n" + data)
+    console.log("Processing data", peerID, JSON.stringify(data))
       switch(data.request) {
         case "requestState":
+          console.log("player requested my state", peerID)
           sendState(peerID)
           break
         case "stateUpdate":
@@ -178,37 +203,38 @@ function setupPeerJS() {
 
   //recieved state from a peer
   function handleRecievedState(peerID, stateData) {
+    console.log("got state data", peerID, stateData)
     setPlayers(currentPlayers => {
-      currentPlayers[peerID] = stateData
-      return currentPlayers
+      let tmpPlayers = {...currentPlayers}
+      tmpPlayers[peerID] = stateData
+      return tmpPlayers
     })
     //check for new peer connections
-    for (let index = 0; index < stateData.peers; index++) {
-      if (!((stateData.peers[index]) in players)) {
-        connectToPeer(stateData.peers[index])
+    stateData.peers.forEach(remotePeerID => {
+      //if peer is not player, or already in list
+      if (remotePeerID !== myPeerID && (!(Object.keys(peers).includes(remotePeerID)))) {
+        console.log("trying to connect to", remotePeerID)
+        connectToPeer(remotePeerID)
       }
-    }
+    })
     processStateUpdate()
   }
 
   //send state to peer
   function sendState(peerID) {
-    let peerIDs = []
-    players.forEach((player, peerID) => {
-      peerIDs.push(peerID)
-    })
+    console.log("Sending state to", peerID)
     let myState = {
       state: playerState,
       username: username,
       word: word,
-      peers: peerIDs
+      peers: Object.keys(players)
     }
     peers[peerID].send({request: "stateUpdate", myState: myState})
   }
 
   //send state to all peers
   function sendAllState () {
-    players.forEach((player, peerID) => {
+    Object.keys(players).forEach((peerID) => {
       sendState(peerID)
     })
   }
@@ -216,8 +242,8 @@ function setupPeerJS() {
   //game logic
   function processStateUpdate() {
     let playersAtSameState = true
-    players.forEach(player => {
-      if (player.state !== playerState) {
+    Object.keys(players).forEach(index => {
+      if (players[index].state !== playerState) {
         playersAtSameState = false
         return
       }
@@ -226,14 +252,14 @@ function setupPeerJS() {
       switch(playerState) {
         case 0:
           // idle
-          setGameStage(0)
+          setGameStage('lobby')
           break
         case 1:
           //writing - no need to take action
            break
         case 2:
           //ready to reveal
-          setGameStage(2)
+          setGameStage('reveal')
           break
         case 3:
           //ready for next round
@@ -265,13 +291,15 @@ function setupPeerJS() {
     <>
     <TopBar 
       myPeerID={myPeerID}
+      showSharePopup={showSharePopup}
+      setShowSharePopup={setShowSharePopup}
     ></TopBar>
-    <Container maxWidth="sm">
     <ErrorBox
       errorList={errorList}
     >
     </ErrorBox>
-    {inGame === false && 
+    <Container maxWidth="sm">
+    {gloablPeerJS === null && 
     <NotInGame
       setInitialPeer={setInitialPeer}
       setUsername={setUsername}
@@ -279,11 +307,42 @@ function setupPeerJS() {
       showError={showError}
     ></NotInGame>
     }
-    {inGame === true &&
-    <>
-    <h1>Connected</h1>
-    </>
+    {gloablPeerJS !== null &&
+    <Game
+      showError={showError}
+      gameStage={gameStage}
+      setGameStage={setGameStage}
+      players={players}
+      myPeerID={myPeerID}
+      showSharePopup={showSharePopup}
+      setShowSharePopup={setShowSharePopup}
+    >
+    </Game>
     }
+    <Dialog open={showJoinPopup} onClose={() => setShowJoinPopup(false)}>
+        <DialogTitle>
+            Joining
+        </DialogTitle>
+        <DialogContent>
+            <DialogContentText>
+                Enter your username
+            </DialogContentText>
+            <TextField
+                autoFocus
+                autoComplete='off'
+                id="username"
+                label="Username"
+                variant="outlined"
+                value={tmpUsername}
+                onChange={(e) => setTmpUsername(e.target.value.replace(/[^a-z0-9]/gi, ''))}
+            />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowJoinPopup(false)}>Cancel</Button>
+          <Button 
+           onClick={joinGame}>Join Game</Button>
+        </DialogActions>
+    </Dialog>
     </Container>
     </>
   );

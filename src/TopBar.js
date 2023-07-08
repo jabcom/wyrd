@@ -4,9 +4,8 @@ import MenuIcon from '@mui/icons-material/Menu';
 import InviteBox from './InviteBox'
 import logoImage from './images/logo-no-background.svg'
 
-function TopBar({myPeerID}) {
+function TopBar({myPeerID, showSharePopup, setShowSharePopup}) {
 
-  const [showSharePopup, setShowSharePopup] = useState(false)
 
   return (
     <AppBar position="static">
@@ -21,11 +20,18 @@ function TopBar({myPeerID}) {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }} align="center">
-          <img src={logoImage} alt="w y r d" width="80%" height="50px" />
+          <img 
+            src={logoImage}
+            alt="w y r d"
+            width="80%"
+            height="50px"
+            //sx={{margin: "5px"}}
+          />
           </Typography>
             {myPeerID !== "" && 
                 <Button 
-                  variant='contained'
+                  variant= 'outlined'
+                  sx={{color:'white', borderColor:'white'}}
                   onClick={() => setShowSharePopup(true)}
                 >Invite Others</Button>
             }

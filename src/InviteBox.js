@@ -1,31 +1,45 @@
 import React from 'react'
 
-import {Typography, Button, Card, CardContent, Backdrop, CardActions } from '@mui/material'
+import {Typography, Button, Card, CardContent, Backdrop, CardActions, Stack, CircularProgress } from '@mui/material'
 import { RWebShare } from "react-web-share";
+import QRCode from 'react-qr-code';
 
 function InviteBox({setShowSharePopup, myPeerID}) {
+  const inviteURL = "http://localhost:3000/?peer=" + myPeerID
   return (
     <>
     <Card sx={{ minWidth: 275 }}>
             <CardContent>
-              <Typography sx={{ fontSize: 14 }} color="text.secondary" gutterBottom>
-                Invite Friends
+              {myPeerID === "" && 
+              <CircularProgress />
+              }
+              {
+                myPeerID !== "" && 
+                <Stack spacing={2}>
+                  <RWebShare
+                      data={{
+                      text: "W Y R D invite",
+                      url: inviteURL,
+                      title: "W Y R D",
+                      }}
+                      onClick={() => setShowSharePopup(false)}
+                  >
+                  <Button
+                      size="large"
+                      variant='outlined'
+                  >Share Invite link</Button>
+              </RWebShare>
+              <Typography align='center'>
+                Or scan this code:
               </Typography>
-              <Typography variant="h5" component="div">
-                <RWebShare
-                    data={{
-                    text: "W Y R D invite",
-                    url: "https://wyrd.distantridge.com/peer=myPeerID",
-                    title: "W Y R D",
-                    }}
-                    onClick={() => setShowSharePopup(false)}
-                >
-                <Button
-                    size="large"
-                    variant='outlined'
-                >Share 🔗</Button>
-            </RWebShare>
-              </Typography>
+              <QRCode
+                size={256}
+                style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                value={inviteURL}
+                viewBox={`0 0 256 256`}
+              />
+              </Stack>
+            }
             </CardContent>
             <CardActions>
               <Button onClick={() => setShowSharePopup(false)}size="small">Close</Button>
