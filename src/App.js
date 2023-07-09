@@ -12,7 +12,7 @@ import Game from './Game';
 
 function App() {
 
-  const [gameStage, setGameStage] = useState(0)
+  const [gameStage, setGameStage] = useState(null)
   const [runningWordList, setRunningWordList] = useState([]) //[{peerID, word}]
   const [currentWordList, setCurrentWordList] = useState({}) //{peerID, word}
   const [username, setUsername] = useState("")
@@ -47,6 +47,25 @@ function App() {
     }
   },[username])
 
+  //update players state in the players list
+  useEffect(() => {
+    if (gloablPeerJS !== null) {
+      if (players[myPeerID].state !== playerState) {
+        setPlayers(currentPlayers => {
+          let newPlayers = {...currentPlayers}
+          newPlayers[myPeerID].state = playerState
+          return newPlayers
+          //send update after players state updated
+        })
+        //hack to wait till players are updated before sending state
+        setPlayers((currentPlayers) => {
+          sendAllState()
+          return currentPlayers
+        })
+      }
+    }
+  },[playerState])
+
   useEffect(() => {
     console.log("Updating peer callback functions")
     Object.keys(peers).forEach(peerID => {
@@ -68,26 +87,23 @@ function App() {
     })
   },[peers])
 
-  //Check if initial peer and username is set, and if so try to start peerJS and connect
-  /*
+  //process state update if players changes
   useEffect(() => {
-    if (initialPeer !== null && initialPeer !== "" && initialPeer !== undefined) {
-      if (username !== "") {
-        //init peerJS
-        if (gloablPeerJS === null) {
-          setupPeerJS()
-        } else {
-          connectToPeer(initialPeer)
-        }
-      }
+    if (gloablPeerJS !== null) {
+    processStateUpdate()
     }
-  }, [initialPeer, username])
-  */
+  }, [players])
+
+
+  function getListOfOtherPlayers() {
+    let tmpPlayerObj = players
+    delete tmpPlayerObj[myPeerID]
+    return Object.keys(tmpPlayerObj)
+  }
 
 function joinGame() {
   setShowJoinPopup(false)
   setUsername(tmpUsername)
-  //setupPeerJS()
 }
 
 function setupPeerJS() {
@@ -217,7 +233,6 @@ function setupPeerJS() {
         connectToPeer(remotePeerID)
       }
     })
-    processStateUpdate()
   }
 
   //send state to peer
@@ -234,28 +249,31 @@ function setupPeerJS() {
 
   //send state to all peers
   function sendAllState () {
-    Object.keys(players).forEach((peerID) => {
+    getListOfOtherPlayers().forEach((peerID) => {
       sendState(peerID)
     })
   }
 
   //game logic
   function processStateUpdate() {
+    console.log("processing state update")
     let playersAtSameState = true
-    Object.keys(players).forEach(index => {
-      if (players[index].state !== playerState) {
+    Object.keys(players).forEach(peerID => {
+      if (players[peerID].state !== playerState) {
         playersAtSameState = false
         return
       }
     })
     if (playersAtSameState) {
+      console.log("players at same state", playersAtSameState)
       switch(playerState) {
         case 0:
           // idle
           setGameStage('lobby')
           break
         case 1:
-          //writing - no need to take action
+          //writing
+          setGameStage('writing')
            break
         case 2:
           //ready to reveal
@@ -282,7 +300,7 @@ function setupPeerJS() {
     })
     setCurrentWordList({})
     setPlayerState(0)
-    setGameStage(0)
+    setGameStage('lobby')
     sendAllState()
     processStateUpdate() //if player is last to update
   }
@@ -316,6 +334,10 @@ function setupPeerJS() {
       myPeerID={myPeerID}
       showSharePopup={showSharePopup}
       setShowSharePopup={setShowSharePopup}
+      setPlayerState={setPlayerState}
+      setWord={setWord}
+      currentWordList={currentWordList}
+      runningWordList={runningWordList}
     >
     </Game>
     }
@@ -335,6 +357,11 @@ function setupPeerJS() {
                 variant="outlined"
                 value={tmpUsername}
                 onChange={(e) => setTmpUsername(e.target.value.replace(/[^a-z0-9]/gi, ''))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    joinGame()
+                  }
+                }}
             />
         </DialogContent>
         <DialogActions>

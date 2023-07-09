@@ -3,10 +3,20 @@ import NoPlayers from './NoPlayers'
 import Lobby from './Lobby'
 import Writing from './Writing'
 import Reveal from './Reveal'
-import { Typography, Stack } from '@mui/material'
+import { Typography, Stack, Box, LinearProgress } from '@mui/material'
 
 
-function Game({players, myPeerID, gameStage,  showSharePopup, setShowSharePopup}) {
+function Game({
+    players,
+    myPeerID,
+    gameStage, 
+    showSharePopup,
+    setShowSharePopup,
+    setPlayerState,
+    setWord,
+    currentWordList,
+    runningWordList
+    }) {
 
     function getPageToShow() {
         //No Players
@@ -20,15 +30,22 @@ function Game({players, myPeerID, gameStage,  showSharePopup, setShowSharePopup}
         if (gameStage === 'lobby') {
             return <Lobby
                 players={players}
+                myPeerID={myPeerID}
+                setPlayerState={setPlayerState}
             ></Lobby>
         }
         if (gameStage === 'writing') {
-            return <Writing></Writing>
+            return <Writing
+                setWord={setWord}
+                currentWordList={currentWordList}
+                runningWordList={runningWordList}
+            ></Writing>
         }
         if (gameStage === 'reveal') {
             return <Reveal></Reveal>
         }
-        return <Typography>An error occured - no gameStage found</Typography>
+        return <LinearProgress />
+
 
 
     }
