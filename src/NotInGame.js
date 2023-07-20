@@ -49,6 +49,11 @@ function NotInGame({setUsername, showError}) {
                 variant="outlined"
                 value={localUsername}
                 onChange={(e) => setLocalUsername(e.target.value.replace(/[^a-z0-9]/gi, ''))}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      startNewGame()
+                    }
+                  }}
             />
         </DialogContent>
         <DialogActions>

@@ -39,6 +39,7 @@ function Game({
                 setWord={setWord}
                 currentWordList={currentWordList}
                 runningWordList={runningWordList}
+                players={players}
             ></Writing>
         }
         if (gameStage === 'reveal') {

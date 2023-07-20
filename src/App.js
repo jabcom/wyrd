@@ -2,7 +2,7 @@
 import './App.css';
 import { useEffect, useState } from 'react';
 import '@fontsource/roboto/400.css';
-import { Container, TextField, Dialog, DialogActions, Button, DialogTitle, DialogContent, DialogContentText} from '@mui/material';
+import { Container, TextField, Dialog, DialogActions, Button, DialogTitle, DialogContent, DialogContentText, Box} from '@mui/material';
 import NotInGame from './NotInGame';
 import Lobby from './Lobby';
 import PeerJS from "peerjs";
@@ -13,8 +13,8 @@ import Game from './Game';
 function App() {
 
   const [gameStage, setGameStage] = useState(null)
-  const [runningWordList, setRunningWordList] = useState([]) //[{peerID, word}]
-  const [currentWordList, setCurrentWordList] = useState({}) //{peerID, word}
+  const [runningWordList, setRunningWordList] = useState([]) //[{peerID: word}]
+  const [currentWordList, setCurrentWordList] = useState([]) //{peerID, word}
   const [username, setUsername] = useState("")
   const [gloablPeerJS, setGlobalPeerJS] = useState(null)
   const [peers, setPeers] = useState({})
@@ -70,7 +70,7 @@ function App() {
     console.log("Updating peer callback functions")
     Object.keys(peers).forEach(peerID => {
       peers[peerID].on('error', (error) => {
-        showError(error)
+        handlePeerError(error)
       })
       peers[peerID].on('data', (data) => {
         console.log("Got data", peerID, JSON.stringify(data))
@@ -93,6 +93,13 @@ function App() {
     processStateUpdate()
     }
   }, [players])
+
+  //check for word changes
+  useEffect(() => {
+    if (word !== null) {
+      setPlayerState(2)
+    }
+  })
 
 
   function getListOfOtherPlayers() {
@@ -137,7 +144,7 @@ function setupPeerJS() {
       //new data connection - i.e. connection from other peer
       peerJS.on('connection', (dataConnection => handlePeerConnection(dataConnection)))
       //handle error connecting to server
-      peerJS.on('error', error => showError(error))
+      peerJS.on('error', error => handlePeerError(error))
 
       peerJS.on('close', () => showError("Peer instance closed"))
       //save peer instance to state
@@ -151,18 +158,26 @@ function setupPeerJS() {
   //Show error
   function showError(msg) {
     console.error(msg)
-    setErrorList(currentErrors => {
-      let newList = [...currentErrors, JSON.stringify(msg)]
-      return newList
-    })
-     setTimeout(() => {
+    //check if error already exists
+    //TODO Fix this
+    //setErrorList(currentList => {return currentList})
+    let errorString = JSON.stringify(msg)
+    if (!errorList.includes(errorString)) {
       setErrorList(currentErrors => {
-        //remove first element
-        let newList = [...currentErrors]
-        newList.shift()
+        let newList = [...currentErrors, errorString]
         return newList
       })
-    }, 3000)
+      setTimeout(() => {
+        setErrorList(currentErrors => {
+          //remove first element
+          let newList = [...currentErrors]
+          newList.shift()
+          return newList
+        })
+      }, 3000)
+    } else {
+      console.error("Duplicate error, not showing in UI")
+    }
   }
 
   //connected to peer
@@ -176,11 +191,32 @@ function setupPeerJS() {
     })
   }
 
+  function handlePeerError(error) {
+    if (error.type === "disconnected") {
+      showError("A player has disconnected")
+      return
+    }
+    if (error.type === "network") {
+      showError("Your connection to the network has failed")
+      return
+    }
+    if (error.type === "peer-unavailable") {
+      showError("Unable to connect to player")
+      return
+    }
+    if (error.type === "server-error") {
+      showError("the signaling server is unavailable")
+      return
+    }
+    showError("An unknown error with a peer has been detected " + error)
+  }
+
   //ask peer for state
   function requestState(peerID) {
     peers[peerID].send({request: "requestState"})
   }
   //disconnected
+  //TODO - if last player, reset the game
   function handlePeerDisconnect(peerID) {
     showError("Peer disconnected")
     setPeers(currentPeers => {
@@ -272,7 +308,7 @@ function setupPeerJS() {
           setGameStage('lobby')
           break
         case 1:
-          //writing
+          //ready to write
           setGameStage('writing')
            break
         case 2:
@@ -301,6 +337,7 @@ function setupPeerJS() {
     setCurrentWordList({})
     setPlayerState(0)
     setGameStage('lobby')
+    setWord(null)
     sendAllState()
     processStateUpdate() //if player is last to update
   }
@@ -316,6 +353,7 @@ function setupPeerJS() {
       errorList={errorList}
     >
     </ErrorBox>
+    <Box sx={{ display: 'flex', alignItems: 'center' }}>
     <Container maxWidth="sm">
     {gloablPeerJS === null && 
     <NotInGame
@@ -343,7 +381,7 @@ function setupPeerJS() {
     }
     <Dialog open={showJoinPopup} onClose={() => setShowJoinPopup(false)}>
         <DialogTitle>
-            Joining
+            Joining Existing Game
         </DialogTitle>
         <DialogContent>
             <DialogContentText>
@@ -371,6 +409,7 @@ function setupPeerJS() {
         </DialogActions>
     </Dialog>
     </Container>
+    </Box>
     </>
   );
 }
