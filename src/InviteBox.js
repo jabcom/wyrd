@@ -5,7 +5,7 @@ import { RWebShare } from "react-web-share";
 import QRCode from 'react-qr-code';
 
 function InviteBox({setShowSharePopup, myPeerID}) {
-  const inviteURL = "http://localhost:3000/?peer=" + myPeerID
+  const inviteURL = "https://wyrd.server.pizza/?peer=" + myPeerID
   return (
     <>
     <Card sx={{ minWidth: 275 }}>

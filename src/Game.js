@@ -15,7 +15,7 @@ function Game({
     setPlayerState,
     setWord,
     currentWordList,
-    runningWordList
+    runningWordList,
     }) {
 
     function getPageToShow() {
@@ -43,7 +43,11 @@ function Game({
             ></Writing>
         }
         if (gameStage === 'reveal') {
-            return <Reveal></Reveal>
+            return <Reveal
+                players={players}
+                currentWordList={currentWordList}
+                setPlayerState={setPlayerState}
+            ></Reveal>
         }
         return <LinearProgress />
 

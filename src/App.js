@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import '@fontsource/roboto/400.css';
 import { Container, TextField, Dialog, DialogActions, Button, DialogTitle, DialogContent, DialogContentText, Box} from '@mui/material';
 import NotInGame from './NotInGame';
-import Lobby from './Lobby';
 import PeerJS from "peerjs";
 import ErrorBox from './ErrorBox';
 import TopBar from './TopBar';
@@ -97,9 +96,18 @@ function App() {
   //check for word changes
   useEffect(() => {
     if (word !== null) {
-      setPlayerState(2)
+      setPlayers(currentPlayers => {
+        let newPlayers = {...currentPlayers}
+        newPlayers[myPeerID].word = word
+        return newPlayers
+      })
+      //hack to wait till players are updated before sending state
+      setPlayers((currentPlayers) => {
+        setPlayerState(2)
+        return currentPlayers
+      })
     }
-  })
+  }, [word])
 
 
   function getListOfOtherPlayers() {
@@ -301,7 +309,7 @@ function setupPeerJS() {
       }
     })
     if (playersAtSameState) {
-      console.log("players at same state", playersAtSameState)
+      console.log("players at same state", playerState)
       switch(playerState) {
         case 0:
           // idle
@@ -312,12 +320,28 @@ function setupPeerJS() {
           setGameStage('writing')
            break
         case 2:
+          //update word lists
+          let newWordList = []
+          Object.keys(players).forEach(playerID => {
+            newWordList.push({playerID: playerID, word: players[playerID].word})
+           })
+           setRunningWordList(cval => {
+            return [...cval, newWordList]
+           })
+           setCurrentWordList(newWordList)
           //ready to reveal
           setGameStage('reveal')
           break
         case 3:
           //ready for next round
-          restartGame()
+          setRunningWordList(cval => {
+            let newRunningWordList = [...cval]
+            newRunningWordList.push(currentWordList)
+            return newRunningWordList
+          })
+          setWord(null)
+          setPlayerState(0)
+          //processStateUpdate()
           break
         default:
           console.error("Opps, players aggreed on unknown state")
@@ -325,22 +349,6 @@ function setupPeerJS() {
     }
   }
 
-
-  //restart the game
-  function restartGame() {
-    //add current word list to saved word list array
-    setRunningWordList(currentRunningWordList => {
-      let newRunningWordList = [...currentRunningWordList]
-      newRunningWordList.push(currentWordList)
-      return newRunningWordList
-    })
-    setCurrentWordList({})
-    setPlayerState(0)
-    setGameStage('lobby')
-    setWord(null)
-    sendAllState()
-    processStateUpdate() //if player is last to update
-  }
 
   return (
     <>
@@ -353,7 +361,7 @@ function setupPeerJS() {
       errorList={errorList}
     >
     </ErrorBox>
-    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', m: 2 }}>
     <Container maxWidth="sm">
     {gloablPeerJS === null && 
     <NotInGame
@@ -394,7 +402,7 @@ function setupPeerJS() {
                 label="Username"
                 variant="outlined"
                 value={tmpUsername}
-                onChange={(e) => setTmpUsername(e.target.value.replace(/[^a-z0-9]/gi, ''))}
+                onChange={(e) => setTmpUsername(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     joinGame()

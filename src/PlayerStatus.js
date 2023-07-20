@@ -1,7 +1,7 @@
 import React from 'react'
 import { Stack, Chip } from '@mui/material'
 
-function PlayerWritingStatus({players}) {
+function PlayerStatus({players, state}) {
 
   return (
         <Stack
@@ -12,7 +12,7 @@ function PlayerWritingStatus({players}) {
         >
             {
                 Object.keys(players).map(peerID => {
-                    if (players[peerID].state !== 2) {
+                    if (players[peerID].state !== state) {
                         return(<Chip
                             key={peerID}
                             label={players[peerID].username}
@@ -32,4 +32,4 @@ function PlayerWritingStatus({players}) {
   )
 }
 
-export default PlayerWritingStatus
+export default PlayerStatus

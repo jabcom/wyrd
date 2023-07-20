@@ -19,19 +19,22 @@ function NotInGame({setUsername, showError}) {
 
   return (
     <>
-        <Grid container spacing={2}>
-        <Grid item xs={12}>
-            Wyrd Description and rules
-        </Grid>
-        <Grid item xs={6}>
+        <Stack
+        justifyContent="center"
+        alignItems="center"
+        spacing={2}
+        >
+            <Typography align='center'>
+                A project to test React and PeerJS for P2P game networking
+            </Typography>
             <Typography align='center'>
                 <Button onClick={() => setShowNewGameBox(true)} variant="contained">Create New Game</Button>
             </Typography>
-        </Grid>
         <Typography align='center'>
             To join a game ask the host to send an invite link
         </Typography>
-    </Grid>
+        <Typography>ver 0.1</Typography>
+    </Stack>
 
     <Dialog open={showNewGameBox} onClose={() => setShowNewGameBox(false)}>
         <DialogTitle>

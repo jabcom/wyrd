@@ -4,7 +4,7 @@ function Lobby({players, myPeerID, setPlayerState}) {
 
   function readyToStartText() {
     if (players[myPeerID].state === 0) {
-      return "Ready to start"
+      return "Ready to start?"
     }
     if (players[myPeerID].state === 1) {
       return "Wait for more players"
@@ -25,7 +25,6 @@ function Lobby({players, myPeerID, setPlayerState}) {
   return (
     <>
     <Stack spacing={2}>
-    <Button variant="contained" onClick={(toggleReadyState)}>{readyToStartText()}</Button>
     <Table sx={{}}>
     <TableHead>
       <TableRow>
@@ -47,7 +46,9 @@ function Lobby({players, myPeerID, setPlayerState}) {
     })}
     </TableBody>
     </Table>
+    <Button variant="contained" onClick={(toggleReadyState)}>{readyToStartText()}</Button>
     </Stack>
+    
     </>
   )
 }
